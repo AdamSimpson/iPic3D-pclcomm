@@ -1,0 +1,8 @@
+to build on Titan:
+
+cd to iPic3D-pclcomm
+
+$ module load cmake
+$ module load cray-hdf5
+$ cmake .
+$ make -f Makefile
