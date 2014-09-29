@@ -4,5 +4,6 @@ cd to iPic3D-pclcomm
 
 $ module load cmake
 $ module load cray-hdf5
-$ cmake .
+$ module load cudatoolkit
+$ cmake . -DOPENACC=ON
 $ make -f Makefile

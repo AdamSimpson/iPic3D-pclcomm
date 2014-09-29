@@ -17,11 +17,15 @@ project(iPic3D)
 set(EXECUTABLE_OUTPUT_PATH exec/${CMAKE_BUILD_TYPE})
 set(LIBRARY_OUTPUT_PATH lib)
 
+
+option(IPIC_XEONPHI "ipic xeon phi standard compile flags" OFF)
+option(IPIC_XEON "optimisation with icpc"  OFF)
+option(OPENACC "Enable OpenACC support" OFF)
 #
 # Set compiler flags per system
 #
 if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "k1om") ## Xeon Phi
-   option(IPIC_XEONPHI "ipic xeon phi standard compile flags" on)
+   set(IPIC_XEONPHI ON)
    if(IPIC_XEONPHI) 
      set(CMAKE_CXX_FLAGS "-O3 -openmp -fno-exceptions -fp-model fast=2 -vec-report -mmic")
    else()
@@ -31,7 +35,7 @@ if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "k1om") ## Xeon Phi
    #set(CMAKE_CXX_FLAGS "-O3 -openmp -fno-exceptions -vec-report -mmic")
    #set(CMAKE_CXX_FLAGS "-openmp -g -mmic") # set flags for Xeon Phi, totalview
 elseif (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64") ## Xeon
-   option(IPIC_XEON "optimisation with icpc"  OFF)
+   set(IPIC_XEON OFF)
    if(IPIC_XEON) 
      #reporting: -g -vec-report
      #optimization: -O3 -xHost -fno-exceptions
@@ -39,8 +43,9 @@ elseif (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64") ## Xeon
      set(CMAKE_CXX_COMPILER "icpc")  
    endif()
    #set(CMAKE_CXX_FLAGS "-O3 -openmp -g -xHost -fno-exceptions -vec-report")
-else()
-   #set(CMAKE_CXX_FLAGS "-O3")
+elseif (OPENACC)
+   set(CMAKE_CXX_FLAGS "-acc -Minfo")
+   set(STATIC_LINK OFF) 
 endif()
 
 #
@@ -183,6 +188,7 @@ message("Which system am I compiling for:")
 message("MYHOSTNAME is ${myhostname}")
 message("CMAKE_SYSTEM_PROCESSOR is ${CMAKE_SYSTEM_PROCESSOR}")
 message("Compiler & compiler flags:")
+message("OpenACC is: " ${OPENACC})
 message("CMAKE_CXX_COMPILER is ${CMAKE_CXX_COMPILER}")
 message("CMAKE_CXX_FLAGS is ${CMAKE_CXX_FLAGS}")
 message("HDF5_INCLUDE_DIRS is ${HDF5_INCLUDE_DIRS}")
