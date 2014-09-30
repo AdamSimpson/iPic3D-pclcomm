@@ -7,3 +7,9 @@ $ module load cray-hdf5
 $ module load cudatoolkit
 $ cmake . -DOPENACC=ON
 $ make -f Makefile
+
+cp exe and input to scratch
+
+$ cd /lustre/atlas/scratch/$USER
+$ mkdir data
+$ aprun -n 16 ./iPic3D GEM.inp
