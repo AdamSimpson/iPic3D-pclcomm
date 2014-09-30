@@ -43,7 +43,7 @@ elseif (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64") ## Xeon
      set(CMAKE_CXX_COMPILER "icpc")
    elseif (OPENACC)
      set(CMAKE_CXX_FLAGS "-acc -Minfo")
-     set(STATIC_LINK OFF)
+     set(STATIC_LINK ON)
    endif()
 endif()
 
@@ -171,6 +171,7 @@ target_link_libraries(
 	 ${EXTRA_LIBS}
 )
 
+#link_directories(lib)
 target_link_libraries(
          iPic3D
          iPic3Dlib
