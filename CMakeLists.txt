@@ -40,12 +40,11 @@ elseif (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64") ## Xeon
      #reporting: -g -vec-report
      #optimization: -O3 -xHost -fno-exceptions
      set(CMAKE_CXX_FLAGS "-openmp -fno-exceptions -O3 -xHost -vec-report")
-     set(CMAKE_CXX_COMPILER "icpc")  
+     set(CMAKE_CXX_COMPILER "icpc")
+   elseif (OPENACC)
+     set(CMAKE_CXX_FLAGS "-acc -Minfo")
+     set(STATIC_LINK OFF)
    endif()
-   #set(CMAKE_CXX_FLAGS "-O3 -openmp -g -xHost -fno-exceptions -vec-report")
-elseif (OPENACC)
-   set(CMAKE_CXX_FLAGS "-acc -Minfo")
-   set(STATIC_LINK OFF) 
 endif()
 
 #
