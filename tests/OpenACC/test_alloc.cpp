@@ -105,10 +105,78 @@ void test_2D()
     std::cout<<"Passed test_2D"<<std::endl;
 }
 
+void test_3D()
+{
+    size_t dim1 = 100;
+    size_t dim2 = 100;
+    size_t dim3 = 100;
+
+    // Allocate arrays
+    char   ***a1 = newArray3<char>(dim1, dim2, dim3);
+    float  ***a2 = newArray3<float>(dim1, dim2, dim3);
+    double ***a3 = newArray3<double>(dim1, dim2, dim3);
+
+    // Fill with data on host
+    for(int i=0; i<dim1; i++) {
+       for(int j=0; j<dim2; j++) {
+           for(int k=0; k<dim3; k++) {
+                a1[i][j][k] = 'h';
+                a2[i][j][k] = 0x80000000;
+                a3[i][j][k] = 0x1.921fb5p+1;
+            }
+        }
+    }
+
+    // Fill with data on device
+    #pragma acc parallel present(a1,a2,a3)
+    {
+        #pragma acc loop
+        for(int i=0; i<dim1; i++) {
+            #pragma acc loop
+            for(int j=0; j<dim2; j++) {
+                #pragma acc loop
+                for(int k=0; k<dim3; k++) {
+                    a1[i][j][k] = 'd';
+                    a2[i][j][k] = 0X436A508C;
+                    a3[i][j][k] = 0x1.f58000p+10;
+                }
+            }
+        }
+    } // acc parallel present
+
+    // Assert host data
+    for(int i=0; i<dim1; i++) {
+        for(int j=0; j<dim2; j++) {
+            for(int k=0; k<dim3; k++) {
+                assert(a1[i][j][k] == 'h');
+                assert(a2[i][j][k] == 0x80000000);
+                assert(a3[i][j][k] == 0x1.921fb5p+1);
+            }
+        }
+    }
+
+    // Copy GPU data to host and assert
+    for(int i=0; i<dim1; i++) {
+        for(int j=0; j<dim2; j++) {
+            for(int k=0; k<dim3; k++) {
+                // Note that update host(a1[i][0:dim2]) DOESN'T work
+                #pragma acc update host(a1[i:1][j:1][0:dim2], a2[i:1][j:1][0:dim2], a3[i:1][j:1][0:dim2])
+                assert(a1[i][j][k] == 'd');
+                assert(a2[i][j][k] == 0X436A508C);
+                assert(a3[i][j][k] == 0x1.f58000p+10);
+            }
+        }
+    }
+
+    // Need to free here
+    std::cout<<"Passed test_3D"<<std::endl;
+}
+
 int main(int argc, char *argv[])
 {
     test_1D();
     test_2D();
+    test_3D();
 
     return 0;
 }
