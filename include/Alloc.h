@@ -3,6 +3,7 @@
 #include <cstddef> // for alignment stuff
 #include "asserts.h" // for assert_le, assert_lt
 #include "arraysfwd.h"
+#include "openacc.h"
 //#include "arrays.h" // fixed-dimension arrays
 
 /*
@@ -109,43 +110,59 @@ template < class type >
 inline type ** newArray2(size_t sz1, size_t sz2)
 {
   type **arr = AlignedAlloc(type*, sz1); // new type *[sz1];
-  #pragma acc enter data create(arr[0:sz1])
+  // Note that ""[0:1] is neccessary
+  #pragma acc enter data create(arr[0:sz1][0:1])
 
   type *ptr = newArray1<type>(sz1*sz2);
 
-  #pragma acc host_data use_device(arr, ptr)
+  // Setup host arr
   for (size_t i = 0; i < sz1; i++)
-  {
-    arr[i] = ptr;
-    ptr += sz2;
-  }
-  return arr;
+      arr[i] = ptr + sz2*i;
+
+   // Setup device arr
+   // Note that &ptr[0] is neccessary, ptr alone will use host scalar value
+   #pragma acc parallel loop present(arr, ptr)
+   for (size_t i = 0; i < sz1; i++)
+     arr[i] = &ptr[0] + sz2*i;
+
+/*
+    for(size_t i=0; i<sz1; i++)
+        std::cout<<"host arr["<<i<<"] = "<<arr[i]<<std::endl;
+
+    acc_memcpy_from_device(arr, acc_deviceptr(arr), sizeof(type*)*sz1);
+    for(size_t i=0; i<sz1; i++)
+    {
+        std::cout<<"device arr["<<i<<"] = "<<arr[i]<<std::endl;
+//        acc_memcpy_from_device(d_ptr, acc_deviceptr(arr[i]), sizeof(type*));
+//        std::cout<<"device arr["<<i<<"] = "<<d_ptr<<std::endl;
+    }
+
+    exit(0);
+*/
+    return arr;
 }
 template < class type >
 inline type *** newArray3(size_t sz1, size_t sz2, size_t sz3)
 {
   type ***arr = AlignedAlloc(type**, sz1); // new type **[sz1];
-  #pragma acc enter data create(arr[sz1])
 
   type **ptr = newArray2<type>(sz1*sz2, sz3);
 
-  #pragma acc host_data use_device(arr, ptr)
-  for (size_t i = 0; i < sz1; i++)
-  {
-    arr[i] = ptr;
-    ptr += sz2;
-  }
+    for (size_t i = 0; i < sz1; i++)
+    {
+      arr[i] = ptr;
+      ptr += sz2;
+    }
+
   return arr;
 }
 template <class type>
 inline type **** newArray4(size_t sz1, size_t sz2, size_t sz3, size_t sz4)
 {
   type ****arr = AlignedAlloc(type***, sz1); //(new type ***[sz1]);
-  #pragma acc enter data create(arr[0:sz1])
 
   type ***ptr = newArray3<type>(sz1*sz2, sz3, sz4);
 
-  #pragma acc host_data use_device(arr, ptr)
   for (size_t i = 0; i < sz1; i++) {
     arr[i] = ptr;
     ptr += sz2;
