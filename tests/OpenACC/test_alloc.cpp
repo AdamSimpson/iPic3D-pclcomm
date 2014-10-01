@@ -91,9 +91,15 @@ void test_2D()
     }
 
     // Copy GPU data to host and assert
+    // If contiguous we can do memcpy, otherwise we must acc update host on the inner most dimension
+    // which is horrible for performance
+    acc_memcpy_from_device(a1[0], acc_deviceptr(a1[0]), sizeof(char)*dim1*dim2);
+    acc_memcpy_from_device(a2[0], acc_deviceptr(a2[0]), sizeof(float)*dim1*dim2);
+    acc_memcpy_from_device(a3[0], acc_deviceptr(a3[0]), sizeof(double)*dim1*dim2);
+
     for(int i=0; i<dim1; i++) {
         // Note that update host(a1[i][0:dim2]) DOESN'T work
-        #pragma acc update host(a1[i:1][0:dim2], a2[i:1][0:dim2], a3[i:1][0:dim2])
+//        #pragma acc update host(a1[i:1][0:dim2], a2[i:1][0:dim2], a3[i:1][0:dim2])
         for(int j=0; j<dim2; j++) {
             assert(a1[i][j] == 'd');
             assert(a2[i][j] == 0X436A508C);
@@ -156,11 +162,16 @@ void test_3D()
     }
 
     // Copy GPU data to host and assert
+    // If contiguous we can do memcpy, otherwise we must acc update host on the inner most dimension
+    // which is horrible for performance
+    acc_memcpy_from_device(a1[0][0], acc_deviceptr(a1[0][0]), sizeof(char)*dim1*dim2*dim3);
+    acc_memcpy_from_device(a2[0][0], acc_deviceptr(a2[0][0]), sizeof(float)*dim1*dim2*dim3);
+    acc_memcpy_from_device(a3[0][0], acc_deviceptr(a3[0][0]), sizeof(double)*dim1*dim2*dim3);
     for(int i=0; i<dim1; i++) {
         for(int j=0; j<dim2; j++) {
             for(int k=0; k<dim3; k++) {
                 // Note that update host(a1[i][0:dim2]) DOESN'T work
-                #pragma acc update host(a1[i:1][j:1][0:dim2], a2[i:1][j:1][0:dim2], a3[i:1][j:1][0:dim2])
+//                #pragma acc update host(a1[i:1][j:1][0:dim2], a2[i:1][j:1][0:dim2], a3[i:1][j:1][0:dim2])
                 assert(a1[i][j][k] == 'd');
                 assert(a2[i][j][k] == 0X436A508C);
                 assert(a3[i][j][k] == 0x1.f58000p+10);
@@ -172,11 +183,94 @@ void test_3D()
     std::cout<<"Passed test_3D"<<std::endl;
 }
 
+void test_4D()
+{
+    size_t dim1 = 100;
+    size_t dim2 = 100;
+    size_t dim3 = 100;
+    size_t dim4 = 100;
+
+    // Allocate arrays
+    char   ****a1 = newArray4<char>(dim1, dim2, dim3, dim4);
+    float  ****a2 = newArray4<float>(dim1, dim2, dim3, dim4);
+    double ****a3 = newArray4<double>(dim1, dim2, dim3, dim4);
+
+    // Fill with data on host
+    for(int i=0; i<dim1; i++) {
+       for(int j=0; j<dim2; j++) {
+           for(int k=0; k<dim3; k++) {
+               for(int t=0; t<dim4; t++) {
+                    a1[i][j][k][t] = 'h';
+                    a2[i][j][k][t] = 0x80000000;
+                    a3[i][j][k][t] = 0x1.921fb5p+1;
+                }
+            }
+        }
+    }
+
+    // Fill with data on device
+    #pragma acc parallel present(a1,a2,a3)
+    {
+        #pragma acc loop
+        for(int i=0; i<dim1; i++) {
+            #pragma acc loop
+            for(int j=0; j<dim2; j++) {
+                #pragma acc loop
+                for(int k=0; k<dim3; k++) {
+                    #pragma acc loop
+                    for(int t=0; t<dim4; t++) {
+                        a1[i][j][k][t] = 'd';
+                        a2[i][j][k][t] = 0X436A508C;
+                        a3[i][j][k][t] = 0x1.f58000p+10;
+                    }
+                }
+            }
+        }
+    } // acc parallel present
+
+    // Assert host data
+    for(int i=0; i<dim1; i++) {
+        for(int j=0; j<dim2; j++) {
+            for(int k=0; k<dim3; k++) {
+                for(int t=0; t<dim4; t++) {
+                    assert(a1[i][j][k][t] == 'h');
+                    assert(a2[i][j][k][t] == 0x80000000);
+                    assert(a3[i][j][k][t] == 0x1.921fb5p+1);
+                }
+            }
+        }
+    }
+
+    // Copy GPU data to host and assert
+    // If contiguous we can do memcpy, otherwise we must acc update host on the inner most dimension
+    // which is horrible for performance
+    acc_memcpy_from_device(a1[0][0][0], acc_deviceptr(a1[0][0][0]), sizeof(char)*dim1*dim2*dim3*dim4);
+    acc_memcpy_from_device(a2[0][0][0], acc_deviceptr(a2[0][0][0]), sizeof(float)*dim1*dim2*dim3*dim4);
+    acc_memcpy_from_device(a3[0][0][0], acc_deviceptr(a3[0][0][0]), sizeof(double)*dim1*dim2*dim3*dim4);
+    for(int i=0; i<dim1; i++) {
+        for(int j=0; j<dim2; j++) {
+            for(int k=0; k<dim3; k++) {
+                for(int t=0; t<dim4; t++) {
+                    // Note that update host(a1[i][0:dim2]) DOESN'T work
+//                    #pragma acc update host(a1[i:1][j:1][k:1][0:dim2], a2[i:1][j:1][k:1][0:dim2], a3[i:1][j:1][k:1][0:dim2])
+                    assert(a1[i][j][k][t] == 'd');
+                    assert(a2[i][j][k][t] == 0X436A508C);
+                    assert(a3[i][j][k][t] == 0x1.f58000p+10);
+                }
+            }
+        }
+    }
+
+    // Need to free here
+    std::cout<<"Passed test_4D"<<std::endl;
+}
+
 int main(int argc, char *argv[])
 {
     test_1D();
     test_2D();
     test_3D();
+    test_4D();
 
     return 0;
 }
