@@ -179,10 +179,17 @@ inline type **** newArray4(type * in, size_t sz1, size_t sz2, size_t sz3, size_t
   type**arr2 = **arr;
   type *ptr = in;
   size_t szarr2 = sz1*sz2*sz3;
-  for(size_t i=0;i<szarr2;i++) {
-    arr2[i] = ptr;
-    ptr += sz4;
-  }
+
+  // Setup host arr
+  for(size_t i=0;i<szarr2;i++)
+    arr2[i] = ptr + sz4*i;
+
+  // Setup device arr
+  // Note that &ptr[0] is neccessary, ptr alone will use host scalar value
+  #pragma acc parallel loop present(arr2, ptr) if(acc_is_present(in))
+  for(size_t i=0;i<szarr2;i++) 
+    arr2[i] = &ptr[0] + sz4*i;
+
   return arr;
 }
 template <class type>
@@ -192,10 +199,17 @@ inline type *** newArray3(type * in, size_t sz1, size_t sz2, size_t sz3)
   type**arr2 = *arr;
   type *ptr = in;
   size_t szarr2 = sz1*sz2;
-  for(size_t i=0;i<szarr2;i++) {
-    arr2[i] = ptr;
-    ptr += sz3;
-  }
+
+  // Setup host arr
+  for(size_t i=0;i<szarr2;i++) 
+    arr2[i] = ptr + sz3*i;
+
+  // Setup device arr
+  // Note that &ptr[0] is neccessary, ptr alone will use host scalar value
+  #pragma acc parallel loop present(arr2, ptr) if(acc_is_present(in))
+  for(size_t i=0;i<szarr2;i++)
+    arr2[i] = &ptr[0] + sz3*i;
+
   return arr;
 }
 template <class type>
@@ -203,10 +217,17 @@ inline type ** newArray2(type * in, size_t sz1, size_t sz2)
 {
   type**arr = newArray1<type*>(sz1);
   type *ptr = in;
-  for(size_t i=0;i<sz1;i++) {
-    arr[i] = ptr;
-    ptr += sz2;
-  }
+
+  // Setup host arr
+  for(size_t i=0;i<sz1;i++) 
+    arr[i] = ptr + sz2*i;
+
+  // Setup device arr
+  // Note that &ptr[0] is neccessary, ptr alone will use host scalar value
+  #pragma acc parallel loop present(arr, ptr) if(acc_is_present(in))
+  for(size_t i=0;i<sz1;i++)
+    arr[i] = &ptr[0] + sz2*i;
+
   return arr;
 }
 
